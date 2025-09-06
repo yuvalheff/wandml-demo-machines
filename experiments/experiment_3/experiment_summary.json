@@ -1,0 +1,103 @@
+{
+  "experiment_name": "Threshold-Optimized Random Forest with Interaction Features",
+  "iteration_number": 3,
+  "timestamp": "2025-09-06T19:57:38.917058Z",
+  "success_status": "FAILED",
+  
+  "primary_metric": {
+    "name": "PR-AUC",
+    "value": 0.525,
+    "target": 0.672,
+    "minimum_viable": 0.600,
+    "performance_vs_target": -21.9,
+    "performance_vs_minimum": -12.5
+  },
+  
+  "all_metrics": {
+    "pr_auc": 0.525,
+    "roc_auc": 0.623,
+    "random_baseline_pr": 0.388,
+    "improvement_over_random": 35.3
+  },
+  
+  "performance_trend": {
+    "iteration_1": 0.593,
+    "iteration_2": 0.569,
+    "iteration_3": 0.525,
+    "total_decline": -11.5,
+    "trend": "declining"
+  },
+  
+  "model_configuration": {
+    "algorithm": "RandomForestClassifier",
+    "n_estimators": 200,
+    "max_depth": 12,
+    "class_weight": "balanced",
+    "feature_count": 42,
+    "engineered_features": 12,
+    "threshold_optimization": true
+  },
+  
+  "feature_engineering": {
+    "strategy": "interaction_features_with_top_predictors",
+    "base_features": ["f_20", "f_14", "f_28"],
+    "engineered_count": 12,
+    "types": ["multiplicative", "ratio", "polynomial"],
+    "top_engineered_importance": [
+      {"name": "f_28_cubed", "rank": 5, "importance": 0.038},
+      {"name": "f_20_div_f_14", "rank": 6, "importance": 0.036},
+      {"name": "f_20_div_f_28", "rank": 8, "importance": 0.034}
+    ],
+    "engineering_effectiveness": "mixed"
+  },
+  
+  "critical_findings": {
+    "performance_regression": "Significant decline from baseline (0.593 → 0.525)",
+    "complexity_paradox": "More sophisticated model performed worse than simple KNN",
+    "feature_engineering_impact": "35% of top features engineered, but overall performance declined",
+    "threshold_optimization_failure": "Could not achieve recall targets despite optimization"
+  },
+  
+  "weaknesses": [
+    "PR-AUC 22% below minimum viable threshold (0.600)",
+    "Performance regression from all previous iterations", 
+    "Complex feature engineering may have caused overfitting",
+    "Random Forest complexity inappropriate for dataset characteristics",
+    "Threshold optimization insufficient without strong base model"
+  ],
+  
+  "business_impact": {
+    "deployment_ready": false,
+    "reason": "Performance below business requirements and declining trend",
+    "predictive_maintenance_effectiveness": "compromised",
+    "recommended_action": "Return to baseline and rebuild incrementally"
+  },
+  
+  "future_suggestions": [
+    "Return to Experiment 1 baseline (PR-AUC: 0.593) as starting point",
+    "Test individual engineered features rather than comprehensive approach", 
+    "Evaluate gradient boosting algorithms (XGBoost, LightGBM)",
+    "Investigate data quality and potential overfitting issues",
+    "Implement incremental complexity addition with validation gates"
+  ],
+  
+  "lessons_learned": {
+    "technical": [
+      "Model complexity doesn't guarantee better performance",
+      "Feature engineering value varies - individual vs ensemble effects differ",
+      "Class imbalance handling insufficient with poor feature combinations"
+    ],
+    "methodological": [
+      "Threshold optimization requires strong foundational model",
+      "Comprehensive feature engineering risks overfitting",
+      "Performance monitoring critical for detecting declining trends"
+    ]
+  },
+  
+  "next_iteration_priorities": [
+    "Recover baseline performance before adding complexity",
+    "Selective feature engineering with individual validation",
+    "Alternative algorithms more suited to dataset characteristics",
+    "Systematic A/B testing of model components"
+  ]
+}

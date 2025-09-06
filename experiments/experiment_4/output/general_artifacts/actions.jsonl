@@ -1,0 +1,5 @@
+{"timestamp": "2025-09-06T20:18:50.241732Z", "action": "load_plan", "status": "ok"}
+{"timestamp": "2025-09-06T20:18:50.306350Z", "action": "snapshot_datasets", "status": "ok", "train_source": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/train_set.csv", "train_snapshot": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/train_set.csv", "test_source": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/test_set.csv", "test_snapshot": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/test_set.csv"}
+{"timestamp": "2025-09-06T20:18:52.354556Z", "action": "experiment.run", "status": "start"}
+{"timestamp": "2025-09-06T20:19:04.639159Z", "action": "experiment.run", "status": "ok", "metric_name": "pr_auc", "metric_value": 0.6292560590938547}
+{"timestamp": "2025-09-06T20:19:04.762645Z", "action": "write_manifest", "status": "ok", "manifest_path": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/experiments/experiment_4/output/general_artifacts/manifest.json"}

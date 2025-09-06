@@ -25,7 +25,7 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         Returns:
         DataProcessor: The fitted processor.
         """
-        # Experiment 3: NO outlier capping - preserve extreme values that indicate failures
+        # Experiment 4: Remove id and f_27 columns, no outlier handling for Gradient Boosting
         # Just initialize empty bounds dictionary for compatibility
         self.outlier_bounds_ = {}
         
@@ -47,7 +47,7 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         # Remove specified columns
         X_transformed = self._remove_columns(X_transformed)
         
-        # Experiment 3: Skip outlier capping to preserve extreme values
+        # Experiment 4: No outlier handling - Gradient Boosting handles raw features well
         # X_transformed = self._apply_outlier_capping(X_transformed)
         
         return X_transformed

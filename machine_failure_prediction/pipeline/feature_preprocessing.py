@@ -70,51 +70,43 @@ class FeatureProcessor(BaseEstimator, TransformerMixin):
     
     def _create_interaction_features(self, X: pd.DataFrame) -> pd.DataFrame:
         """
-        Create 12 interaction features from top predictive features (f_20, f_14, f_28):
-        - 3 multiplicative interactions
-        - 3 ratio features  
-        - 6 polynomial features (squared and cubed for each)
+        Create 5 conservative engineered features for Experiment 4:
+        - 3 ratio features from top predictive features (f_20, f_14, f_28)
+        - 2 log transformations for highly skewed features (f_13, f_17)
         
         Parameters:
         X (pd.DataFrame): Input features
         
         Returns:
-        pd.DataFrame: Features with interactions added
+        pd.DataFrame: Features with conservative engineering added
         """
-        X_interactions = X.copy()
+        X_engineered = X.copy()
         
         # Verify top predictive features exist
         available_features = [f for f in self.top_predictive_features if f in X.columns]
         if len(available_features) < 3:
             print(f"Warning: Only {len(available_features)} of {len(self.top_predictive_features)} top features found")
         
-        # 1. Multiplicative interactions (3 features)
-        if 'f_20' in X.columns and 'f_14' in X.columns:
-            X_interactions['f_20_x_f_14'] = X['f_20'] * X['f_14']
-        if 'f_20' in X.columns and 'f_28' in X.columns:
-            X_interactions['f_20_x_f_28'] = X['f_20'] * X['f_28']
-        if 'f_14' in X.columns and 'f_28' in X.columns:
-            X_interactions['f_14_x_f_28'] = X['f_14'] * X['f_28']
-        
-        # 2. Ratio features with epsilon for division safety (3 features)
+        # 1. Ratio features with epsilon for division safety (3 features)
         epsilon = 1e-8
         if 'f_20' in X.columns and 'f_14' in X.columns:
-            X_interactions['f_20_div_f_14'] = X['f_20'] / (X['f_14'] + epsilon)
+            X_engineered['f_20_div_f_14'] = X['f_20'] / (X['f_14'] + epsilon)
         if 'f_20' in X.columns and 'f_28' in X.columns:
-            X_interactions['f_20_div_f_28'] = X['f_20'] / (X['f_28'] + epsilon)
+            X_engineered['f_20_div_f_28'] = X['f_20'] / (X['f_28'] + epsilon)
         if 'f_14' in X.columns and 'f_28' in X.columns:
-            X_interactions['f_14_div_f_28'] = X['f_14'] / (X['f_28'] + epsilon)
+            X_engineered['f_14_div_f_28'] = X['f_14'] / (X['f_28'] + epsilon)
         
-        # 3. Polynomial features - squared and cubed terms (6 features)
-        for feature in self.top_predictive_features:
-            if feature in X.columns:
-                X_interactions[f'{feature}_squared'] = X[feature] ** 2
-                X_interactions[f'{feature}_cubed'] = X[feature] ** 3
+        # 2. Log transformations for highly skewed features (2 features)
+        # Use log1p to handle negative values and abs() for stability
+        if 'f_13' in X.columns:
+            X_engineered['f_13_log'] = np.log1p(np.abs(X['f_13']))
+        if 'f_17' in X.columns:
+            X_engineered['f_17_log'] = np.log1p(np.abs(X['f_17']))
         
         # Validate for infinite/NaN values and apply clipping if needed
-        X_interactions = self._validate_and_clip_features(X_interactions)
+        X_engineered = self._validate_and_clip_features(X_engineered)
         
-        return X_interactions
+        return X_engineered
     
     def _validate_and_clip_features(self, X: pd.DataFrame) -> pd.DataFrame:
         """

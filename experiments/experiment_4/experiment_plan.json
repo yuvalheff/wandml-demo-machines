@@ -1,0 +1,18 @@
+{
+  "experiment_name": "Gradient Boosting with Conservative Feature Engineering",
+  "task_type": "binary_classification",
+  "target_column": "target", 
+  "experiment_evaluation_metric": "PR-AUC",
+  "experiment_preprocessing_steps": "1. Load train_set.csv and test_set.csv from data/ directory. 2. Remove identifier columns: 'id' and 'f_27' (categorical feature with unique values per sample that causes data leakage). 3. Verify no missing values exist in remaining 30 numerical features (f_00 through f_30 excluding f_27). 4. No scaling or normalization required for Gradient Boosting - use raw feature values. 5. Split features and target: X_train/X_test contain 30 numerical features, y_train/y_test contain 'target' column.",
+  "experiment_feature_engineering_steps": "1. Create ratio features from top predictive features identified in EDA: f_20_div_f_14 = f_20 / (f_14 + 1e-8), f_20_div_f_28 = f_20 / (f_28 + 1e-8), f_14_div_f_28 = f_14 / (f_28 + 1e-8). Use small epsilon (1e-8) to prevent division by zero. 2. Apply log transformation to highly skewed features from EDA analysis: f_13_log = log1p(abs(f_13)), f_17_log = log1p(abs(f_17)). Use log1p to handle negative values and abs() for stability. 3. Final feature set: 30 original features + 5 engineered features = 35 total features. 4. No feature scaling or selection - Gradient Boosting handles mixed scales well.",
+  "experiment_model_selection_steps": "1. Use GradientBoostingClassifier from sklearn.ensemble with optimized hyperparameters: n_estimators=200, learning_rate=0.05, max_depth=4, min_samples_split=15, random_state=42. 2. No class balancing weights - the dataset is well-balanced (48% failure rate in train, 39% in test). 3. Train on engineered training set (300 samples, 35 features). 4. Generate probability predictions on test set for PR-AUC evaluation. 5. No ensemble or additional models - single optimized Gradient Boosting model based on exploration results.",
+  "experiment_evaluation_strategy": "1. Primary metric: PR-AUC on test set - critical for imbalanced failure prediction where missing failures is costly. 2. Secondary metrics: ROC-AUC, precision-recall curve analysis, calibration assessment. 3. Business metrics: Calculate precision at 65% recall threshold (business requirement for predictive maintenance). 4. Feature importance analysis: Rank all 35 features to validate engineering effectiveness. 5. Threshold analysis: Generate precision-recall curve and identify optimal operating points. 6. Model diagnostics: Confusion matrix, probability distribution analysis, and calibration plots. 7. Performance comparison: Compare against previous iterations (target improvement over 0.525 PR-AUC from Experiment 3). 8. Generate comprehensive visualizations: precision_recall_curve.html, feature_importance.html, confusion_matrix.html, calibration_plot.html, threshold_analysis.html.",
+  "expected_pr_auc_range": "0.62-0.64",
+  "key_success_criteria": [
+    "PR-AUC > 0.60 (significant improvement over Experiment 3's 0.525)",
+    "Achieve 65% recall with precision > 45% for business deployment",
+    "Feature importance shows engineered features in top 15",
+    "Model calibration suitable for probability-based decisions"
+  ],
+  "iteration_focus": "Switch from Random Forest to Gradient Boosting algorithm with conservative feature engineering to reverse the performance decline trend observed in previous iterations"
+}

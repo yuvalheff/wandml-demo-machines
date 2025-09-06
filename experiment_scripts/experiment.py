@@ -193,7 +193,7 @@ class Experiment:
         logged_model_uri = None
         
         # If MLflow run ID is provided, reconnect and log the model as an artifact
-        active_run_id = "d4213440e71d437d826e8766a7cb2ab1"
+        active_run_id = "e5f4ebc065fa49e6903aed659af2f183"
         
         if active_run_id and active_run_id != 'None' and active_run_id.strip():
             print(f"✅ Active MLflow run ID '{active_run_id}' detected. Reconnecting to log model as an artifact.")

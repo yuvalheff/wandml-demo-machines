@@ -2,12 +2,12 @@ data_prep:
   version: "1.0"
   dataset_name: "machine_failure_prediction"
   columns_to_remove: ["id", "f_27"]
-  outlier_features: []  # No outlier capping for experiment 3
+  outlier_features: []  # No outlier handling for Gradient Boosting
   target_column: "target"
   outlier_method: "none"
   
 feature_prep:
-  apply_scaling: false  # Random Forest handles mixed scales naturally
+  apply_scaling: false  # Gradient Boosting handles raw features well
 
 model_evaluation:
   split_ratio: 0.2
@@ -16,13 +16,12 @@ model_evaluation:
   random_seed: 42
 
 model:
-  model_type: "random_forest"
+  model_type: "gradient_boosting"
   model_params:
     n_estimators: 200
-    class_weight: "balanced"  # Key change for better failure detection
-    max_depth: 12
-    min_samples_split: 5
-    min_samples_leaf: 2
+    learning_rate: 0.05
+    max_depth: 4
+    min_samples_split: 15
     random_state: 42
 
 

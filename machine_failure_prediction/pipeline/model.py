@@ -3,7 +3,7 @@ import numpy as np
 import pickle
 import os
 
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from machine_failure_prediction.config import ModelConfig
 
 
@@ -17,6 +17,8 @@ class ModelWrapper:
         """Create the model based on configuration"""
         if self.config.model_type == 'random_forest':
             return RandomForestClassifier(**self.config.model_params)
+        elif self.config.model_type == 'gradient_boosting':
+            return GradientBoostingClassifier(**self.config.model_params)
         else:
             raise ValueError(f"Unsupported model type: {self.config.model_type}")
 
