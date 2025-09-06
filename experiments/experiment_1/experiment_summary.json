@@ -1,0 +1,147 @@
+{
+  "experiment_metadata": {
+    "experiment_name": "Optimized KNN with Outlier Capping",
+    "iteration_number": 1,
+    "timestamp": "2025-09-06T19:14:52.741864Z",
+    "task_type": "binary_classification",
+    "evaluation_metric": "PR-AUC",
+    "seed": 42
+  },
+  "performance_metrics": {
+    "primary_metric": {
+      "name": "PR-AUC",
+      "value": 0.593,
+      "description": "Area under Precision-Recall curve"
+    },
+    "secondary_metrics": [
+      {
+        "name": "ROC-AUC",
+        "value": 0.751,
+        "description": "Area under ROC curve"
+      },
+      {
+        "name": "Accuracy",
+        "value": 0.662,
+        "description": "Overall classification accuracy"
+      },
+      {
+        "name": "F1-Score",
+        "value": 0.609,
+        "description": "Harmonic mean of precision and recall"
+      }
+    ],
+    "all_metrics": [
+      {
+        "name": "PR-AUC",
+        "value": 0.593,
+        "description": "Area under Precision-Recall curve"
+      },
+      {
+        "name": "ROC-AUC",
+        "value": 0.751,
+        "description": "Area under ROC curve"
+      },
+      {
+        "name": "Accuracy",
+        "value": 0.662,
+        "description": "Overall classification accuracy"
+      },
+      {
+        "name": "Precision",
+        "value": 0.553,
+        "description": "Positive predictive value"
+      },
+      {
+        "name": "Recall",
+        "value": 0.677,
+        "description": "True positive rate (sensitivity)"
+      },
+      {
+        "name": "F1-Score",
+        "value": 0.609,
+        "description": "Harmonic mean of precision and recall"
+      },
+      {
+        "name": "Specificity",
+        "value": 0.653,
+        "description": "True negative rate"
+      },
+      {
+        "name": "Balanced Accuracy",
+        "value": 0.665,
+        "description": "Average of recall and specificity"
+      }
+    ]
+  },
+  "model_configuration": {
+    "algorithm": "KNeighborsClassifier",
+    "hyperparameters": {
+      "n_neighbors": 11,
+      "weights": "distance",
+      "metric": "manhattan"
+    },
+    "preprocessing": {
+      "feature_exclusion": ["id", "f_27"],
+      "outlier_handling": {
+        "method": "IQR_capping",
+        "features": ["f_20", "f_06", "f_00"]
+      },
+      "scaling": "StandardScaler"
+    }
+  },
+  "experiment_results": {
+    "expected_performance": 0.663,
+    "actual_performance": 0.593,
+    "performance_gap": -0.070,
+    "test_set_size": 80,
+    "class_distribution": {
+      "positive_samples": 31,
+      "negative_samples": 49
+    },
+    "confusion_matrix": {
+      "true_positives": 21,
+      "true_negatives": 32,
+      "false_positives": 17,
+      "false_negatives": 10
+    }
+  },
+  "key_findings": {
+    "strengths": [
+      "Successfully implemented optimized KNN with preprocessing pipeline",
+      "Established baseline performance with comprehensive evaluation",
+      "Model deployment pipeline working correctly with MLflow integration"
+    ],
+    "weaknesses": [
+      "10.5% underperformance relative to exploration expectations",
+      "High false positive rate (34.7%) problematic for maintenance applications",
+      "Limited feature engineering may have missed improvement opportunities"
+    ],
+    "insights": [
+      "KNN approach may have reached performance ceiling with current feature set",
+      "Data drift or implementation differences caused expectation gap",
+      "Simple distance-based method insufficient for complex failure patterns"
+    ]
+  },
+  "future_recommendations": [
+    "Implement planned Voting Classifier ensemble for improved stability and performance",
+    "Investigate advanced feature engineering despite previous exploration results",
+    "Conduct systematic hyperparameter optimization across preprocessing and modeling",
+    "Analyze data quality and consistency between exploration and production datasets"
+  ],
+  "artifacts": {
+    "model_files": [
+      "data_processor.pkl",
+      "feature_processor.pkl", 
+      "trained_model.pkl",
+      "mlflow_model/"
+    ],
+    "evaluation_plots": [
+      "precision_recall_curve.html",
+      "roc_curve.html",
+      "calibration_curve.html",
+      "confusion_matrix.html",
+      "probability_distribution.html"
+    ],
+    "model_size_bytes": 92939
+  }
+}

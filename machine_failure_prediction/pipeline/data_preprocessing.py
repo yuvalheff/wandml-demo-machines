@@ -31,11 +31,18 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         # Calculate outlier bounds for specified features
         for feature in self.config.outlier_features:
             if feature in X_clean.columns:
-                Q1 = X_clean[feature].quantile(0.25)
-                Q3 = X_clean[feature].quantile(0.75)
-                IQR = Q3 - Q1
-                lower_bound = Q1 - 1.5 * IQR
-                upper_bound = Q3 + 1.5 * IQR
+                if self.config.outlier_method == "quantile":
+                    # Use q05/q95 quantile-based capping as per experiment plan
+                    lower_bound = X_clean[feature].quantile(0.05)
+                    upper_bound = X_clean[feature].quantile(0.95)
+                else:
+                    # Use IQR method (default/fallback)
+                    Q1 = X_clean[feature].quantile(0.25)
+                    Q3 = X_clean[feature].quantile(0.75)
+                    IQR = Q3 - Q1
+                    lower_bound = Q1 - 1.5 * IQR
+                    upper_bound = Q3 + 1.5 * IQR
+                
                 self.outlier_bounds_[feature] = {
                     'lower': lower_bound,
                     'upper': upper_bound

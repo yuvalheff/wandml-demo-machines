@@ -1,0 +1,147 @@
+{
+  "experiment_name": "RF+KNN Ensemble with Optimized Outlier Handling",
+  "experiment_description": "Implementation of Random Forest and K-Nearest Neighbors ensemble with improved outlier capping strategy to enhance machine failure prediction performance.",
+  "task_type": "binary_classification",
+  "target_column": "target",
+  "primary_evaluation_metric": "PR-AUC",
+  "expected_performance": {
+    "target_pr_auc": 0.672,
+    "improvement_over_baseline": "13.2% improvement over Iteration 1 baseline (0.593)"
+  },
+  "key_changes_from_previous_iteration": [
+    "Replace single KNN model with RF+KNN ensemble approach",
+    "Optimize outlier capping from q99/q01 to q95/q05 quantiles",
+    "Implement soft voting ensemble with equal weights"
+  ],
+  "preprocessing_steps": {
+    "feature_exclusion": {
+      "columns_to_exclude": ["id", "f_27"],
+      "reasoning": "id is identifier, f_27 has 300 unique categorical values requiring complex encoding"
+    },
+    "outlier_handling": {
+      "method": "quantile_capping",
+      "features": ["f_20", "f_06", "f_00"],
+      "quantiles": {
+        "upper": 0.95,
+        "lower": 0.05
+      },
+      "reasoning": "Exploration showed q95/q05 capping outperforms q99/q01 by 1.4% PR-AUC"
+    },
+    "feature_scaling": {
+      "method": "StandardScaler",
+      "features": "all_remaining_features",
+      "reasoning": "Required for KNN component of ensemble, RF is scale-invariant"
+    }
+  },
+  "feature_engineering_steps": {
+    "approach": "minimal",
+    "reasoning": "Exploration showed complex feature engineering (polynomial, interactions) provided marginal gains compared to ensemble approach",
+    "features_to_keep": "all_30_original_features_after_exclusion"
+  },
+  "model_selection_steps": {
+    "ensemble_approach": {
+      "method": "soft_voting_ensemble",
+      "models": [
+        {
+          "name": "RandomForest",
+          "algorithm": "RandomForestClassifier",
+          "parameters": {
+            "n_estimators": 100,
+            "random_state": 42
+          },
+          "input_data": "original_features_without_scaling",
+          "reasoning": "RF handles feature interactions internally and is scale-invariant"
+        },
+        {
+          "name": "KNN", 
+          "algorithm": "KNeighborsClassifier",
+          "parameters": {
+            "n_neighbors": 11,
+            "weights": "distance",
+            "metric": "manhattan"
+          },
+          "input_data": "standardized_features",
+          "reasoning": "Distance-based algorithm requires scaled features for optimal performance"
+        }
+      ],
+      "voting_method": "soft",
+      "weights": "equal"
+    }
+  },
+  "evaluation_strategy": {
+    "primary_metric": "PR-AUC",
+    "secondary_metrics": [
+      "ROC-AUC",
+      "Precision", 
+      "Recall",
+      "F1-Score",
+      "Accuracy",
+      "Specificity",
+      "Balanced_Accuracy"
+    ],
+    "cross_validation": {
+      "method": "StratifiedKFold",
+      "n_splits": 5,
+      "random_state": 42
+    },
+    "threshold_optimization": {
+      "recommended_threshold": 0.4,
+      "reasoning": "Maximizes F1-score (0.678) with balanced precision (0.556) and recall (0.868)"
+    },
+    "diagnostic_analyses": [
+      {
+        "analysis": "precision_recall_curve",
+        "purpose": "Visualize precision-recall trade-offs across all thresholds"
+      },
+      {
+        "analysis": "roc_curve", 
+        "purpose": "Assess discriminative ability and compare with baseline"
+      },
+      {
+        "analysis": "calibration_curve",
+        "purpose": "Evaluate probability calibration quality for deployment confidence"
+      },
+      {
+        "analysis": "confusion_matrix",
+        "purpose": "Analyze error patterns and false positive/negative rates"
+      },
+      {
+        "analysis": "probability_distribution",
+        "purpose": "Compare prediction confidence between classes"
+      },
+      {
+        "analysis": "feature_importance_rf",
+        "purpose": "Identify most important features from Random Forest component"
+      },
+      {
+        "analysis": "ensemble_component_analysis",
+        "purpose": "Compare individual RF and KNN contributions to final predictions"
+      }
+    ]
+  },
+  "expected_outputs": {
+    "model_artifacts": [
+      "trained_ensemble_model.pkl",
+      "feature_scaler.pkl", 
+      "preprocessing_pipeline.pkl"
+    ],
+    "evaluation_plots": [
+      "precision_recall_curve.html",
+      "roc_curve.html",
+      "calibration_curve.html", 
+      "confusion_matrix.html",
+      "probability_distribution.html",
+      "feature_importance.html",
+      "ensemble_analysis.html"
+    ],
+    "performance_summary": {
+      "json_file": "experiment_results.json",
+      "markdown_file": "experiment_summary.md"
+    }
+  },
+  "success_criteria": {
+    "primary": "PR-AUC >= 0.650 (9.6% improvement minimum)",
+    "secondary": "F1-Score >= 0.650 with balanced precision/recall",
+    "deployment": "Model probabilities well-calibrated for business decision-making"
+  }
+}

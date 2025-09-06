@@ -14,6 +14,7 @@ class DataConfig:
     columns_to_remove: List[str]
     outlier_features: List[str]
     target_column: str
+    outlier_method: str = "quantile"  # "quantile" or "iqr"
 
 
 @dataclass
