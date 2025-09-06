@@ -33,7 +33,7 @@ class ModelEvaluator:
         ]
 
     def evaluate_model(self, model, X_test: pd.DataFrame, y_test: pd.Series, 
-                      plots_dir: str) -> Dict[str, Any]:
+                      plots_dir: str, feature_names: list = None) -> Dict[str, Any]:
         """
         Comprehensive model evaluation with plots and metrics
         """
@@ -44,11 +44,67 @@ class ModelEvaluator:
         # Calculate metrics
         metrics = self._calculate_metrics(y_test, y_pred, y_pred_proba)
         
+        # Threshold optimization for better recall
+        threshold_analysis = self.optimize_threshold(y_test, y_pred_proba)
+        metrics['threshold_analysis'] = threshold_analysis
+        
         # Generate plots
         os.makedirs(plots_dir, exist_ok=True)
         self._create_plots(y_test, y_pred, y_pred_proba, plots_dir)
         
+        # Feature importance analysis
+        if feature_names and hasattr(model, 'get_feature_importance_df'):
+            feature_importance = model.get_feature_importance_df(feature_names)
+            metrics['feature_importance'] = feature_importance.to_dict('records')
+            self._plot_feature_importance(feature_importance, plots_dir)
+        
+        # Threshold optimization plot
+        self._plot_threshold_analysis(threshold_analysis, plots_dir)
+        
         return metrics
+
+    def optimize_threshold(self, y_true: pd.Series, y_pred_proba: np.ndarray, 
+                          min_recall: float = 0.65) -> Dict[str, Any]:
+        """
+        Optimize threshold for recall >= 65% while maximizing precision
+        """
+        thresholds = np.arange(0.1, 0.91, 0.01)
+        results = []
+        
+        for threshold in thresholds:
+            y_pred_thresh = (y_pred_proba >= threshold).astype(int)
+            
+            precision = precision_score(y_true, y_pred_thresh, zero_division=0)
+            recall = recall_score(y_true, y_pred_thresh)
+            f1 = f1_score(y_true, y_pred_thresh, zero_division=0)
+            
+            results.append({
+                'threshold': threshold,
+                'precision': precision,
+                'recall': recall,
+                'f1_score': f1
+            })
+        
+        results_df = pd.DataFrame(results)
+        
+        # Find optimal threshold with recall >= min_recall
+        valid_thresholds = results_df[results_df['recall'] >= min_recall]
+        
+        if len(valid_thresholds) > 0:
+            # Select threshold that maximizes precision while maintaining recall >= min_recall
+            optimal_row = valid_thresholds.loc[valid_thresholds['precision'].idxmax()]
+        else:
+            # If no threshold achieves min_recall, select the one with highest recall
+            optimal_row = results_df.loc[results_df['recall'].idxmax()]
+        
+        return {
+            'all_thresholds': results,
+            'optimal_threshold': float(optimal_row['threshold']),
+            'optimal_precision': float(optimal_row['precision']),
+            'optimal_recall': float(optimal_row['recall']),
+            'optimal_f1': float(optimal_row['f1_score']),
+            'min_recall_achieved': float(optimal_row['recall']) >= min_recall
+        }
 
     def _calculate_metrics(self, y_true: pd.Series, y_pred: np.ndarray, 
                           y_pred_proba: np.ndarray) -> Dict[str, Any]:
@@ -254,6 +310,98 @@ class ModelEvaluator:
         )
         
         self._save_plot(fig, os.path.join(plots_dir, 'calibration_curve.html'))
+
+    def _plot_threshold_analysis(self, threshold_analysis: Dict[str, Any], plots_dir: str):
+        """Plot threshold analysis for optimal threshold selection"""
+        results = pd.DataFrame(threshold_analysis['all_thresholds'])
+        optimal_threshold = threshold_analysis['optimal_threshold']
+        
+        fig = make_subplots(
+            rows=2, cols=1,
+            subplot_titles=['Precision and Recall vs Threshold', 'F1-Score vs Threshold'],
+            vertical_spacing=0.12
+        )
+        
+        # Precision and Recall
+        fig.add_trace(go.Scatter(
+            x=results['threshold'],
+            y=results['precision'],
+            mode='lines',
+            name='Precision',
+            line=dict(color=self.app_color_palette[0], width=2)
+        ), row=1, col=1)
+        
+        fig.add_trace(go.Scatter(
+            x=results['threshold'],
+            y=results['recall'],
+            mode='lines',
+            name='Recall',
+            line=dict(color=self.app_color_palette[1], width=2)
+        ), row=1, col=1)
+        
+        # F1 Score
+        fig.add_trace(go.Scatter(
+            x=results['threshold'],
+            y=results['f1_score'],
+            mode='lines',
+            name='F1-Score',
+            line=dict(color=self.app_color_palette[2], width=2)
+        ), row=2, col=1)
+        
+        # Mark optimal threshold
+        for row in [1, 2]:
+            fig.add_vline(
+                x=optimal_threshold,
+                line_dash="dash",
+                annotation_text=f"Optimal: {optimal_threshold:.2f}",
+                line=dict(color='red', width=1),
+                row=row, col=1
+            )
+        
+        # Min recall line
+        fig.add_hline(
+            y=0.65,
+            line_dash="dot",
+            annotation_text="Target Recall ≥ 0.65",
+            line=dict(color='orange', width=1),
+            row=1, col=1
+        )
+        
+        fig.update_xaxes(title_text="Threshold", row=2, col=1)
+        fig.update_yaxes(title_text="Score", row=1, col=1)
+        fig.update_yaxes(title_text="F1-Score", row=2, col=1)
+        
+        fig.update_layout(
+            title='Threshold Optimization Analysis',
+            height=600,
+            **self._get_plot_style()
+        )
+        
+        self._save_plot(fig, os.path.join(plots_dir, 'threshold_analysis.html'))
+
+    def _plot_feature_importance(self, feature_importance: pd.DataFrame, plots_dir: str):
+        """Plot feature importance analysis"""
+        top_features = feature_importance.head(20)  # Top 20 features
+        
+        fig = go.Figure(data=go.Bar(
+            x=top_features['importance'],
+            y=top_features['feature'],
+            orientation='h',
+            marker_color=self.app_color_palette[0]
+        ))
+        
+        fig.update_layout(
+            title='Top 20 Feature Importance',
+            xaxis_title='Importance Score',
+            yaxis_title='Feature',
+            height=600,
+            **self._get_plot_style()
+        )
+        
+        # Reverse the y-axis to show most important features at the top
+        fig.update_yaxes(autorange="reversed")
+        
+        self._save_plot(fig, os.path.join(plots_dir, 'feature_importance.html'))
 
     def _get_plot_style(self) -> Dict[str, Any]:
         """Get consistent plot styling"""

@@ -1,0 +1,268 @@
+{
+  "experiment_name": "Threshold-Optimized Random Forest with Interaction Features",
+  "experiment_description": "Implement optimized Random Forest with advanced feature engineering and threshold tuning to significantly improve recall while achieving PR-AUC target",
+  "iteration_number": 3,
+  "primary_objective": "Improve recall to ≥65% while achieving PR-AUC target of 0.672 through threshold optimization and interaction features",
+  
+  "preprocessing_steps": {
+    "feature_exclusions": {
+      "columns_to_remove": ["id", "f_27"],
+      "rationale": "id is non-predictive identifier; f_27 has 300 unique categorical values creating overfitting risk"
+    },
+    "outlier_handling": {
+      "strategy": "none",
+      "rationale": "Remove aggressive q95/q05 capping from iteration 2 to preserve extreme values that signal failures",
+      "change_from_previous": "Previous iteration used aggressive quantile capping which removed critical failure signals"
+    },
+    "scaling": {
+      "required": false,
+      "rationale": "Random Forest handles mixed scales naturally; no standardization needed"
+    },
+    "resulting_feature_count": 30
+  },
+  
+  "feature_engineering_steps": {
+    "strategy": "interaction_features_with_top_predictors",
+    "base_features": ["f_20", "f_14", "f_28"],
+    "rationale": "Top 3 predictive features from EDA analysis; create interactions to capture complex failure patterns",
+    
+    "multiplicative_interactions": [
+      {"name": "f_20_x_f_14", "formula": "f_20 * f_14"},
+      {"name": "f_20_x_f_28", "formula": "f_20 * f_28"},
+      {"name": "f_14_x_f_28", "formula": "f_14 * f_28"}
+    ],
+    
+    "ratio_interactions": [
+      {"name": "f_20_div_f_14", "formula": "f_20 / (f_14 + 1e-8)"},
+      {"name": "f_20_div_f_28", "formula": "f_20 / (f_28 + 1e-8)"},
+      {"name": "f_14_div_f_28", "formula": "f_14 / (f_28 + 1e-8)"}
+    ],
+    
+    "polynomial_features": [
+      {"name": "f_20_squared", "formula": "f_20 ** 2"},
+      {"name": "f_14_squared", "formula": "f_14 ** 2"},
+      {"name": "f_28_squared", "formula": "f_28 ** 2"},
+      {"name": "f_20_cubed", "formula": "f_20 ** 3"},
+      {"name": "f_14_cubed", "formula": "f_14 ** 3"},
+      {"name": "f_28_cubed", "formula": "f_28 ** 3"}
+    ],
+    
+    "total_engineered_features": 12,
+    "final_feature_count": 42,
+    "validation_steps": ["Check for infinite values", "Verify no NaN values", "Apply clipping if needed for extreme ratios"]
+  },
+  
+  "model_selection_steps": {
+    "algorithm": "RandomForestClassifier",
+    "rationale": "Best performing algorithm from exploration; handles interactions naturally; provides interpretable feature importance",
+    
+    "hyperparameters": {
+      "n_estimators": 200,
+      "random_state": 42,
+      "class_weight": "balanced",
+      "max_depth": 12,
+      "min_samples_split": 5,
+      "min_samples_leaf": 2,
+      "bootstrap": true,
+      "n_jobs": -1
+    },
+    
+    "hyperparameter_rationale": {
+      "n_estimators": "Increased from 100 for better stability",
+      "class_weight": "balanced weights address class imbalance - key change from previous iterations",
+      "max_depth": "Prevent overfitting while allowing complexity for interactions",
+      "min_samples_split": "Conservative splitting to prevent overfitting",
+      "min_samples_leaf": "Additional overfitting protection"
+    },
+    
+    "cross_validation": {
+      "method": "StratifiedKFold",
+      "folds": 5,
+      "shuffle": true,
+      "random_state": 42,
+      "purpose": "Reliable performance estimation with balanced class distribution in each fold"
+    }
+  },
+  
+  "threshold_optimization_strategy": {
+    "methodology": "precision_recall_curve_analysis",
+    "threshold_range": [0.1, 0.9],
+    "step_size": 0.02,
+    
+    "optimization_objectives": [
+      {
+        "name": "recall_focused",
+        "target": "recall >= 0.65",
+        "priority": "primary",
+        "business_justification": "In predictive maintenance, missing failures is more costly than false alarms"
+      },
+      {
+        "name": "f1_optimized", 
+        "target": "maximize F1-score",
+        "priority": "secondary",
+        "purpose": "Balanced precision-recall performance"
+      },
+      {
+        "name": "precision_constrained",
+        "target": "recall >= 0.60 with precision >= 0.50",
+        "priority": "fallback",
+        "purpose": "Conservative option if recall target not achievable"
+      }
+    ],
+    
+    "expected_optimal_threshold": 0.34,
+    "rationale": "Based on exploration experiments showing recall=0.861, precision=0.525 at threshold=0.34"
+  },
+  
+  "evaluation_strategy": {
+    "primary_metrics": [
+      {
+        "name": "PR-AUC",
+        "target": 0.672,
+        "minimum": 0.600,
+        "current_best": 0.569,
+        "expected": 0.650,
+        "improvement": "14.2%"
+      },
+      {
+        "name": "Recall", 
+        "target": 0.65,
+        "minimum": 0.60,
+        "current_best": 0.414,
+        "expected": 0.861,
+        "improvement": ">100%"
+      },
+      {
+        "name": "F1-Score",
+        "target": 0.650,
+        "minimum": 0.600, 
+        "current_best": 0.558,
+        "expected": 0.653,
+        "improvement": "17%"
+      }
+    ],
+    
+    "secondary_metrics": [
+      {"name": "Precision", "monitor_threshold": 0.45},
+      {"name": "ROC-AUC", "purpose": "Overall discrimination ability"},
+      {"name": "Specificity", "purpose": "True negative rate assessment"}
+    ],
+    
+    "diagnostic_analyses": [
+      {
+        "name": "threshold_analysis",
+        "components": ["precision_recall_curves", "threshold_performance_plots", "optimal_threshold_identification"],
+        "purpose": "Understand recall-precision trade-offs and select deployment threshold"
+      },
+      {
+        "name": "feature_importance_analysis", 
+        "components": ["rf_feature_importance", "top_10_features", "engineered_vs_original_comparison"],
+        "purpose": "Model interpretability and feature engineering validation"
+      },
+      {
+        "name": "prediction_pattern_analysis",
+        "components": ["confusion_matrix", "probability_distributions", "hard_cases_identification"],
+        "purpose": "Understand model behavior and failure patterns"
+      },
+      {
+        "name": "model_calibration_assessment",
+        "components": ["calibration_curves", "reliability_diagrams", "confidence_intervals"],
+        "purpose": "Assess prediction reliability for deployment"
+      }
+    ]
+  },
+  
+  "expected_outputs": {
+    "model_artifacts": [
+      {"name": "model.pkl", "description": "Trained RandomForest model"},
+      {"name": "feature_names.json", "description": "List of all 42 feature names with types"},
+      {"name": "threshold_analysis.json", "description": "Optimal thresholds for different objectives"}
+    ],
+    
+    "evaluation_reports": [
+      {"name": "experiment_summary.json", "description": "Comprehensive metrics and performance data"},
+      {"name": "experiment_summary.md", "description": "Human-readable analysis and business insights"}
+    ],
+    
+    "visualization_plots": [
+      {"name": "precision_recall_curve.html", "description": "PR curve with optimal thresholds marked"},
+      {"name": "threshold_analysis.html", "description": "Threshold vs metrics performance plots"},
+      {"name": "feature_importance.html", "description": "Feature importance rankings and analysis"},
+      {"name": "confusion_matrix.html", "description": "Confusion matrix at optimal threshold"},
+      {"name": "calibration_curve.html", "description": "Model calibration assessment"}
+    ],
+    
+    "deployment_recommendations": {
+      "include": ["optimal_threshold_with_justification", "feature_importance_insights", "performance_vs_previous_iterations", "next_iteration_suggestions"]
+    }
+  },
+  
+  "success_criteria": {
+    "minimum_viable": {
+      "pr_auc": 0.600,
+      "recall": 0.60, 
+      "f1_score": 0.600,
+      "description": "Must achieve these metrics for experiment to be considered successful"
+    },
+    
+    "target_performance": {
+      "pr_auc": 0.672,
+      "recall": 0.65,
+      "f1_score": 0.650, 
+      "description": "Target metrics that meet business requirements"
+    },
+    
+    "stretch_goals": {
+      "pr_auc": 0.700,
+      "recall": 0.75,
+      "precision": 0.55,
+      "description": "Exceptional performance benchmarks"
+    }
+  },
+  
+  "risk_mitigation": {
+    "technical_risks": [
+      {
+        "risk": "overfitting_with_interaction_features",
+        "mitigation": "Conservative RF hyperparameters, cross-validation, feature count monitoring"
+      },
+      {
+        "risk": "threshold_instability", 
+        "mitigation": "Systematic threshold analysis on separate validation set"
+      },
+      {
+        "risk": "feature_scaling_issues",
+        "mitigation": "Using tree-based RF model that handles mixed scales naturally"
+      }
+    ],
+    
+    "business_risks": [
+      {
+        "risk": "high_false_negative_rate",
+        "mitigation": "Direct recall optimization through threshold tuning and class balancing"
+      },
+      {
+        "risk": "false_alarm_fatigue",
+        "mitigation": "Precision monitoring and careful threshold selection with business input"
+      },
+      {
+        "risk": "model_interpretability_loss",
+        "mitigation": "Feature importance analysis and single-model approach for transparency"
+      }
+    ]
+  },
+  
+  "iterative_change_summary": {
+    "primary_change": "Replace ensemble approach with threshold-optimized single Random Forest model",
+    "secondary_changes": ["Add interaction feature engineering", "Remove aggressive outlier capping", "Implement balanced class weighting"],
+    "rationale": "Focus on single most impactful change (threshold optimization) while supporting with proven enhancements",
+    "expected_impact": "14.2% PR-AUC improvement and >100% recall improvement based on exploration results"
+  },
+  
+  "exploration_basis": {
+    "experiments_conducted": ["cost_sensitive_learning", "feature_engineering", "threshold_optimization", "feature_importance_analysis"],
+    "key_findings": ["RF with balanced weights outperforms ensemble", "Interaction features improve PR-AUC by 4.2%", "Threshold=0.34 achieves recall=0.861", "Engineered features appear in top 10 importance"],
+    "confidence_level": "high",
+    "validation_method": "5-fold cross-validation with separate test set analysis"
+  }
+}

@@ -2,12 +2,12 @@ data_prep:
   version: "1.0"
   dataset_name: "machine_failure_prediction"
   columns_to_remove: ["id", "f_27"]
-  outlier_features: ["f_20", "f_06", "f_00"]
+  outlier_features: []  # No outlier capping for experiment 3
   target_column: "target"
-  outlier_method: "quantile"  # Use quantile-based capping (q95/q05)
+  outlier_method: "none"
   
 feature_prep:
-  apply_scaling: false  # RF+KNN ensemble handles scaling internally
+  apply_scaling: false  # Random Forest handles mixed scales naturally
 
 model_evaluation:
   split_ratio: 0.2
@@ -16,17 +16,14 @@ model_evaluation:
   random_seed: 42
 
 model:
-  model_type: "rf_knn_ensemble"
+  model_type: "random_forest"
   model_params:
-    rf_params:
-      n_estimators: 100
-      random_state: 42
-    knn_params:
-      n_neighbors: 11
-      weights: "distance"
-      metric: "manhattan"
-    voting: "soft"
-    weights: [1, 1]  # Equal weights for RF and KNN
+    n_estimators: 200
+    class_weight: "balanced"  # Key change for better failure detection
+    max_depth: 12
+    min_samples_split: 5
+    min_samples_leaf: 2
+    random_state: 42
 
 
 

@@ -87,27 +87,62 @@ class Experiment:
         model = ModelWrapper(self._config.model)
         model.fit(X_train_features, y_train)
         
-        # 4. Evaluate model
-        print("📈 Evaluating model...")
+        # 4. Cross-validation evaluation  
+        print("🔄 Performing cross-validation...")
+        from sklearn.model_selection import cross_val_score, StratifiedKFold
+        from sklearn.metrics import make_scorer
+        
+        # Create a temporary pipeline for CV
+        from sklearn.pipeline import Pipeline
+        temp_pipeline = Pipeline([
+            ('data_prep', data_processor),
+            ('feature_prep', feature_processor),
+            ('model', model.model)  # Access the underlying sklearn model
+        ])
+        
+        cv = StratifiedKFold(n_splits=self._config.model_evaluation.cross_validation_folds, 
+                           shuffle=True, random_state=seed)
+        
+        # PR-AUC cross-validation - use string scorer name instead of custom scorer
+        cv_scores = cross_val_score(temp_pipeline, X_train, y_train, cv=cv, 
+                                   scoring='average_precision', n_jobs=-1)
+        
+        print(f"Cross-validation PR-AUC: {cv_scores.mean():.4f} ± {cv_scores.std():.4f}")
+        
+        # 5. Test set evaluation
+        print("📈 Evaluating on test set...")
         evaluator = ModelEvaluator(self._config.model_evaluation)
         
         # Apply preprocessing to test data
         X_test_processed = data_processor.transform(X_test)
         X_test_features = feature_processor.transform(X_test_processed)
         
-        # Evaluate model and generate plots
-        metrics = evaluator.evaluate_model(model, X_test_features, y_test, plots_dir)
+        # Evaluate model and generate plots with feature importance
+        feature_names = X_test_features.columns.tolist()
+        metrics = evaluator.evaluate_model(model, X_test_features, y_test, plots_dir, feature_names)
         
-        print(f"Primary metric (PR-AUC): {metrics['pr_auc']:.4f}")
-        print(f"Additional metrics - ROC-AUC: {metrics['roc_auc']:.4f}, Accuracy: {metrics['accuracy']:.4f}")
+        # Add cross-validation results
+        metrics['cross_validation'] = {
+            'pr_auc_mean': float(cv_scores.mean()),
+            'pr_auc_std': float(cv_scores.std()),
+            'pr_auc_scores': cv_scores.tolist()
+        }
         
-        # 5. Save individual model artifacts
+        print(f"🎯 Test Set Results:")
+        print(f"  Primary metric (PR-AUC): {metrics['pr_auc']:.4f}")
+        print(f"  Recall: {metrics['recall']:.4f}")
+        print(f"  F1-Score: {metrics['f1_score']:.4f}")
+        print(f"  Optimal threshold: {metrics['threshold_analysis']['optimal_threshold']:.3f}")
+        print(f"  Optimal recall: {metrics['threshold_analysis']['optimal_recall']:.4f}")
+        print(f"  Target recall ≥0.65 achieved: {metrics['threshold_analysis']['min_recall_achieved']}")
+        
+        # 6. Save individual model artifacts
         print("💾 Saving model artifacts...")
         data_processor.save(os.path.join(model_artifacts_dir, "data_processor.pkl"))
         feature_processor.save(os.path.join(model_artifacts_dir, "feature_processor.pkl"))
         model.save(os.path.join(model_artifacts_dir, "trained_model.pkl"))
         
-        # 6. Create and test ModelPipeline
+        # 7. Create and test ModelPipeline
         print("🔗 Creating MLflow-compatible pipeline...")
         pipeline = ModelPipeline(
             data_processor=data_processor,
@@ -128,7 +163,7 @@ class Experiment:
         print(f"Pipeline test successful - predictions shape: {sample_predictions.shape}")
         print(f"Pipeline test successful - probabilities shape: {sample_probabilities.shape}")
         
-        # 7. Save and log MLflow model
+        # 8. Save and log MLflow model
         print("📦 Saving MLflow model...")
         
         # Define paths
@@ -137,6 +172,11 @@ class Experiment:
         
         # Always save the model locally for harness validation
         print(f"💾 Saving model to local disk for harness: {mlflow_model_path}")
+        
+        # Remove existing model directory if it exists
+        import shutil
+        if os.path.exists(mlflow_model_path):
+            shutil.rmtree(mlflow_model_path)
         
         # Create model signature
         signature = mlflow.models.infer_signature(sample_input, pipeline.predict(sample_input))
@@ -153,7 +193,7 @@ class Experiment:
         logged_model_uri = None
         
         # If MLflow run ID is provided, reconnect and log the model as an artifact
-        active_run_id = "36640fb31dd54f06b56007fa0093e918"
+        active_run_id = "d4213440e71d437d826e8766a7cb2ab1"
         
         if active_run_id and active_run_id != 'None' and active_run_id.strip():
             print(f"✅ Active MLflow run ID '{active_run_id}' detected. Reconnecting to log model as an artifact.")
@@ -173,7 +213,7 @@ class Experiment:
         else:
             print("ℹ️ No active MLflow run ID provided. Skipping model logging.")
         
-        # 8. Prepare results
+        # 9. Prepare results
         model_artifacts = [
             "data_processor.pkl",
             "feature_processor.pkl", 

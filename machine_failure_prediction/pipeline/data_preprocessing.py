@@ -25,28 +25,9 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         Returns:
         DataProcessor: The fitted processor.
         """
-        # Remove columns first to get clean data for outlier bound calculation
-        X_clean = self._remove_columns(X)
-        
-        # Calculate outlier bounds for specified features
-        for feature in self.config.outlier_features:
-            if feature in X_clean.columns:
-                if self.config.outlier_method == "quantile":
-                    # Use q05/q95 quantile-based capping as per experiment plan
-                    lower_bound = X_clean[feature].quantile(0.05)
-                    upper_bound = X_clean[feature].quantile(0.95)
-                else:
-                    # Use IQR method (default/fallback)
-                    Q1 = X_clean[feature].quantile(0.25)
-                    Q3 = X_clean[feature].quantile(0.75)
-                    IQR = Q3 - Q1
-                    lower_bound = Q1 - 1.5 * IQR
-                    upper_bound = Q3 + 1.5 * IQR
-                
-                self.outlier_bounds_[feature] = {
-                    'lower': lower_bound,
-                    'upper': upper_bound
-                }
+        # Experiment 3: NO outlier capping - preserve extreme values that indicate failures
+        # Just initialize empty bounds dictionary for compatibility
+        self.outlier_bounds_ = {}
         
         return self
 
@@ -66,8 +47,8 @@ class DataProcessor(BaseEstimator, TransformerMixin):
         # Remove specified columns
         X_transformed = self._remove_columns(X_transformed)
         
-        # Apply outlier capping
-        X_transformed = self._apply_outlier_capping(X_transformed)
+        # Experiment 3: Skip outlier capping to preserve extreme values
+        # X_transformed = self._apply_outlier_capping(X_transformed)
         
         return X_transformed
 

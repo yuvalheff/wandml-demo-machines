@@ -1,0 +1,135 @@
+{
+  "experiment_id": "experiment_2",
+  "experiment_name": "RF+KNN Ensemble with Optimized Outlier Handling",
+  "timestamp": "2025-09-06T19:33:08.500957Z",
+  "success": false,
+  "target_achieved": false,
+  
+  "performance_summary": {
+    "primary_metric": {
+      "name": "PR-AUC",
+      "value": 0.569,
+      "target": 0.672,
+      "gap_percentage": -15.3
+    },
+    "secondary_metrics": {
+      "roc_auc": 0.714,
+      "f1_score": 0.558,
+      "accuracy": 0.548,
+      "precision": 0.857,
+      "recall": 0.414,
+      "specificity": 0.846
+    },
+    "confusion_matrix": {
+      "true_positives": 12,
+      "false_positives": 2,
+      "true_negatives": 11,
+      "false_negatives": 17,
+      "total_samples": 42
+    }
+  },
+  
+  "experiment_configuration": {
+    "model_type": "ensemble",
+    "algorithm": "RandomForest + KNN with soft voting",
+    "components": [
+      {
+        "name": "RandomForest",
+        "parameters": {
+          "n_estimators": 100,
+          "random_state": 42
+        }
+      },
+      {
+        "name": "KNN",
+        "parameters": {
+          "n_neighbors": 11,
+          "weights": "distance",
+          "metric": "manhattan"
+        }
+      }
+    ],
+    "voting_strategy": "soft",
+    "preprocessing": {
+      "outlier_capping": {
+        "method": "quantile_capping",
+        "quantiles": [0.05, 0.95],
+        "features": ["f_20", "f_06", "f_00"]
+      },
+      "feature_scaling": "StandardScaler for KNN only",
+      "excluded_features": ["id", "f_27"]
+    }
+  },
+  
+  "key_findings": {
+    "strengths": [
+      "High precision (85.7%) - accurate failure predictions",
+      "Strong specificity (84.6%) - minimal false alarms", 
+      "Good discrimination ability (ROC-AUC: 0.714)",
+      "Stable ensemble approach with soft voting"
+    ],
+    "critical_weaknesses": [
+      "Low recall (41.4%) - misses 59% of actual failures",
+      "Performance 15.3% below target PR-AUC",
+      "Conservative prediction pattern creates business risk",
+      "Ensemble did not achieve expected improvement"
+    ],
+    "business_impact": {
+      "risk_level": "high",
+      "deployment_ready": false,
+      "primary_concern": "High false negative rate poses operational risks"
+    }
+  },
+  
+  "comparison_with_previous": {
+    "iteration_1_baseline": 0.593,
+    "current_performance": 0.569,
+    "change": -0.024,
+    "change_percentage": -4.0,
+    "improvement_expected": 0.079,
+    "improvement_achieved": -0.024
+  },
+  
+  "technical_analysis": {
+    "ensemble_effectiveness": "Limited - equal weighting may not be optimal",
+    "outlier_handling_impact": "May have been too aggressive (q95/q05)",
+    "feature_engineering": "Minimal approach may limit learning capacity",
+    "class_imbalance": "Present - random baseline PR-AUC: 0.388"
+  },
+  
+  "artifacts_generated": [
+    "trained_model.pkl",
+    "feature_processor.pkl", 
+    "data_processor.pkl",
+    "mlflow_model/",
+    "precision_recall_curve.html",
+    "roc_curve.html",
+    "calibration_curve.html",
+    "confusion_matrix.html",
+    "probability_distribution.html"
+  ],
+  
+  "future_recommendations": {
+    "immediate_priority": [
+      "Implement recall-focused threshold optimization",
+      "Optimize ensemble component weights using validation data",
+      "Enhanced feature engineering with interactions and transformations"
+    ],
+    "medium_term": [
+      "Advanced ensemble methods (stacking, blending)",
+      "Refined outlier handling strategies", 
+      "Class imbalance techniques (SMOTE, cost-sensitive learning)"
+    ],
+    "architecture_alternatives": [
+      "Add gradient boosting components",
+      "Neural network integration",
+      "Time-series feature engineering"
+    ]
+  },
+  
+  "next_iteration_focus": {
+    "primary_objective": "Improve recall while maintaining reasonable precision",
+    "key_strategy": "Recall-focused optimization and ensemble weight tuning",
+    "expected_outcome": "Better balance between precision and recall for business deployment"
+  }
+}
