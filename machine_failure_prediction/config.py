@@ -11,25 +11,28 @@ class ConfigParsingFailed(Exception):
 class DataConfig:
     version: str
     dataset_name: str
-    placeholder: Any
+    columns_to_remove: List[str]
+    outlier_features: List[str]
+    target_column: str
 
 
 @dataclass
 class FeaturesConfig:
-    placeholder: Any
+    apply_scaling: bool
 
 
 @dataclass
 class ModelEvalConfig:
     split_ratio: float
-    placeholder: Any
+    cross_validation_folds: int
+    evaluation_metric: str
+    random_seed: int
 
 
 @dataclass
 class ModelConfig:
     model_type: str
     model_params: Dict[str, Any]
-    placeholder: Any
 
 
 @dataclass

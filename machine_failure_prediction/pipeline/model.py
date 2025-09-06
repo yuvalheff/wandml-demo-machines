@@ -1,4 +1,10 @@
 import pandas as pd
+import numpy as np
+import pickle
+import os
+
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, VotingClassifier
 
 from machine_failure_prediction.config import ModelConfig
 
@@ -6,9 +12,33 @@ from machine_failure_prediction.config import ModelConfig
 class ModelWrapper:
     def __init__(self, config: ModelConfig):
         self.config: ModelConfig = config
-        # self.model = ...
+        self.model = self._create_model()
+        self.is_fitted = False
 
-    def fit(self, X: pd.Series, y: pd.Series):
+    def _create_model(self):
+        """Create the model based on configuration"""
+        if self.config.model_type == 'knn':
+            return KNeighborsClassifier(**self.config.model_params)
+        elif self.config.model_type == 'voting_classifier':
+            # Create ensemble components
+            knn = KNeighborsClassifier(**self.config.model_params.get('knn_params', {}))
+            rf = RandomForestClassifier(**self.config.model_params.get('rf_params', {}))
+            gb = GradientBoostingClassifier(**self.config.model_params.get('gb_params', {}))
+            
+            estimators = [
+                ('knn', knn),
+                ('rf', rf),
+                ('gb', gb)
+            ]
+            
+            return VotingClassifier(
+                estimators=estimators,
+                voting=self.config.model_params.get('voting', 'soft')
+            )
+        else:
+            raise ValueError(f"Unsupported model type: {self.config.model_type}")
+
+    def fit(self, X: pd.DataFrame, y: pd.Series):
         """
         Fit the classifier to the training data.
 
@@ -19,10 +49,11 @@ class ModelWrapper:
         Returns:
         self: Fitted classifier.
         """
-        # implement fitting logic
+        self.model.fit(X, y)
+        self.is_fitted = True
         return self
 
-    def predict(self, X: pd.DataFrame) -> pd.Series:
+    def predict(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict class labels for the input features.
 
@@ -32,11 +63,11 @@ class ModelWrapper:
         Returns:
         np.ndarray: Predicted class labels.
         """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before prediction")
+        return self.model.predict(X)
 
-        # implement prediction logic
-        return
-
-    def predict_proba(self, X: pd.DataFrame) -> pd.Series:
+    def predict_proba(self, X: pd.DataFrame) -> np.ndarray:
         """
         Predict class probabilities for the input features.
 
@@ -46,6 +77,30 @@ class ModelWrapper:
         Returns:
         np.ndarray: Predicted class probabilities.
         """
+        if not self.is_fitted:
+            raise ValueError("Model must be fitted before prediction")
+        return self.model.predict_proba(X)
 
-        # implement probability prediction logic
-        return
+    def save(self, path: str) -> None:
+        """
+        Save the model as an artifact
+
+        Parameters:
+        path (str): The file path to save the model.
+        """
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'wb') as f:
+            pickle.dump(self, f)
+
+    def load(self, path: str) -> 'ModelWrapper':
+        """
+        Load the model from a saved artifact.
+
+        Parameters:
+        path (str): The file path to load the model from.
+
+        Returns:
+        ModelWrapper: The loaded model.
+        """
+        with open(path, 'rb') as f:
+            return pickle.load(f)

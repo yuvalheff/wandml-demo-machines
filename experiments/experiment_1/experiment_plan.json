@@ -1,0 +1,157 @@
+{
+  "experiment_name": "Optimized KNN with Outlier Capping",
+  "task_type": "binary_classification",
+  "target_column": "target",
+  "evaluation_metric": "PR-AUC",
+  "data_paths": {
+    "train": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/train_set.csv",
+    "test": "/Users/yuvalheffetz/ds-agent-projects/session_ce64539f-782b-46c7-ab41-9bf37519daed/data/test_set.csv"
+  },
+  "preprocessing_steps": {
+    "feature_selection": {
+      "exclude_columns": ["id", "f_27"],
+      "reason": "id is identifier, f_27 has 300 unique values (essentially ID-like)"
+    },
+    "outlier_handling": {
+      "method": "IQR_capping",
+      "target_features": ["f_20", "f_06", "f_00"],
+      "parameters": {
+        "lower_bound": "Q1 - 1.5 * IQR",
+        "upper_bound": "Q3 + 1.5 * IQR"
+      }
+    },
+    "scaling": {
+      "method": "StandardScaler",
+      "reason": "Required for KNN algorithm optimal performance"
+    }
+  },
+  "feature_engineering": {
+    "create_interactions": false,
+    "reason": "Exploration showed feature interactions did not improve performance",
+    "transform_skewed": false,
+    "reason": "Log transformations showed no benefit in exploration experiments"
+  },
+  "model_configuration": {
+    "primary_model": {
+      "algorithm": "KNeighborsClassifier",
+      "parameters": {
+        "n_neighbors": 11,
+        "weights": "distance",
+        "metric": "manhattan"
+      },
+      "expected_performance": "PR-AUC ~ 0.6628 based on exploration"
+    },
+    "secondary_model": {
+      "algorithm": "VotingClassifier",
+      "components": [
+        {
+          "name": "random_forest",
+          "algorithm": "RandomForestClassifier",
+          "parameters": {"n_estimators": 100, "random_state": 42}
+        },
+        {
+          "name": "gradient_boosting", 
+          "algorithm": "GradientBoostingClassifier",
+          "parameters": {
+            "n_estimators": 200,
+            "learning_rate": 0.1,
+            "max_depth": 5,
+            "random_state": 42
+          }
+        },
+        {
+          "name": "knn",
+          "algorithm": "KNeighborsClassifier", 
+          "parameters": {
+            "n_neighbors": 11,
+            "weights": "distance",
+            "metric": "manhattan"
+          }
+        }
+      ],
+      "voting": "soft",
+      "expected_performance": "PR-AUC ~ 0.6301 with higher stability"
+    }
+  },
+  "evaluation_strategy": {
+    "cross_validation": {
+      "method": "StratifiedKFold",
+      "folds": 5,
+      "random_state": 42
+    },
+    "metrics": {
+      "primary": "PR-AUC",
+      "secondary": ["precision", "recall", "f1_score", "roc_auc", "accuracy"]
+    },
+    "diagnostic_analyses": [
+      {
+        "analysis": "feature_importance",
+        "description": "Analyze top predictive features using permutation importance for KNN model interpretation"
+      },
+      {
+        "analysis": "calibration_analysis", 
+        "description": "Assess probability calibration using reliability diagrams and Brier score"
+      },
+      {
+        "analysis": "error_analysis",
+        "description": "Analyze false positives and false negatives to understand failure patterns"
+      },
+      {
+        "analysis": "threshold_optimization",
+        "description": "Find optimal classification threshold for business requirements using precision-recall curve"
+      },
+      {
+        "analysis": "prediction_confidence",
+        "description": "Analyze prediction probability distributions for confident vs uncertain predictions"
+      }
+    ],
+    "performance_slicing": [
+      {
+        "slice": "by_feature_ranges",
+        "description": "Evaluate performance across different ranges of top features (f_28, f_20, f_19)"
+      },
+      {
+        "slice": "by_prediction_confidence", 
+        "description": "Compare performance for high vs low confidence predictions"
+      }
+    ]
+  },
+  "expected_outputs": {
+    "model_files": [
+      "knn_model_optimized.pkl",
+      "ensemble_model.pkl", 
+      "scaler_pipeline.pkl"
+    ],
+    "evaluation_reports": [
+      "model_performance_report.json",
+      "feature_importance_analysis.json",
+      "calibration_analysis.json", 
+      "error_analysis_report.json"
+    ],
+    "visualizations": [
+      "precision_recall_curve.png",
+      "calibration_plot.png",
+      "feature_importance_plot.png",
+      "error_distribution_plot.png"
+    ]
+  },
+  "implementation_notes": {
+    "pipeline_order": [
+      "1. Load train/test data",
+      "2. Remove id and f_27 columns", 
+      "3. Apply outlier capping to f_20, f_06, f_00",
+      "4. Fit StandardScaler on training data",
+      "5. Transform both train and test data",
+      "6. Train KNN model with specified parameters",
+      "7. Evaluate using 5-fold CV on training data",
+      "8. Generate final predictions on test set",
+      "9. Conduct comprehensive evaluation analyses"
+    ],
+    "validation_requirements": [
+      "Verify preprocessing steps match exploration results",
+      "Ensure no data leakage in scaling (fit on train only)",
+      "Confirm evaluation metrics match exploration benchmarks",
+      "Validate that model hyperparameters are correctly set"
+    ]
+  }
+}
